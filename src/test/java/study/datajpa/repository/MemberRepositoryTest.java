@@ -230,4 +230,30 @@ class MemberRepositoryTest {
             System.out.println("member.getTeam().getName() = " + member.getTeam().getName());
         }
     }
+
+    @Test
+    public void queryHint() throws Exception {
+        //given
+        Member member1 = new Member("member1", 10);
+        memberRepository.save(member1);
+        entityManager.flush();
+        entityManager.clear();
+        //when
+        Member findMember = memberRepository.findReadOnlyByUsername(member1.getUsername());
+        findMember.setUsername("member2");
+        entityManager.flush();
+        //then
+    }
+
+    @Test
+    void lock() throws Exception {
+        //given
+        Member member1 = new Member("member1", 10);
+        memberRepository.save(member1);
+        entityManager.flush();
+        entityManager.clear();
+        //when
+        List<Member> findMember = memberRepository.findLockByUsername("member1");
+        //then
+    }
 }
