@@ -3,9 +3,9 @@ package study.datajpa.repository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.Example;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort;
 import org.springframework.transaction.annotation.Transactional;
 import study.datajpa.dto.MemberDto;
@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @Transactional
@@ -30,7 +29,7 @@ class MemberRepositoryTest {
     @Autowired
     TeamRepository teamRepository;
     @PersistenceContext
-    EntityManager entityManager;
+    EntityManager em;
 
     @Test
     public void testMember() {
@@ -219,8 +218,8 @@ class MemberRepositoryTest {
         memberRepository.save(member1);
         memberRepository.save(member2);
 
-        entityManager.flush();
-        entityManager.clear();
+        em.flush();
+        em.clear();
 
         //when
         List<Member> members = memberRepository.findAll();
@@ -236,12 +235,12 @@ class MemberRepositoryTest {
         //given
         Member member1 = new Member("member1", 10);
         memberRepository.save(member1);
-        entityManager.flush();
-        entityManager.clear();
+        em.flush();
+        em.clear();
         //when
         Member findMember = memberRepository.findReadOnlyByUsername(member1.getUsername());
         findMember.setUsername("member2");
-        entityManager.flush();
+        em.flush();
         //then
     }
 
@@ -250,8 +249,8 @@ class MemberRepositoryTest {
         //given
         Member member1 = new Member("member1", 10);
         memberRepository.save(member1);
-        entityManager.flush();
-        entityManager.clear();
+        em.flush();
+        em.clear();
         //when
         List<Member> findMember = memberRepository.findLockByUsername("member1");
         //then
@@ -263,5 +262,47 @@ class MemberRepositoryTest {
         List<Member> result = memberRepository.findMemberCustom();
         //when
         //then
+    }
+
+    @Test
+    void queryByuExample() throws Exception {
+        //given
+        Team teamA = new Team("teamA");
+        em.persist(teamA);
+
+        Member m1 = new Member("m1", 0, teamA);
+        Member m2 = new Member("m2", 0, teamA);
+        em.persist(m1);
+        em.persist(m2);
+
+        em.flush();
+        em.clear();
+        //when
+        //Probe
+        Member member = new Member("m1");
+        Example<Member> example = Example.of(member);
+        List<Member> result = memberRepository.findAll(example);
+        //then
+        assertThat(result.get(0).getUsername()).isEqualTo("m1");
+    }
+
+    @Test
+    void projections() throws Exception {
+        //given
+        Team teamA = new Team("teamA");
+        em.persist(teamA);
+
+        Member m1 = new Member("m1", 0, teamA);
+        Member m2 = new Member("m2", 0, teamA);
+        em.persist(m1);
+        em.persist(m2);
+
+        em.flush();
+        em.clear();
+        //when
+        List<UsernameOnlyDto> result = memberRepository.findProjectionsByUsername("m1");
+        for (UsernameOnlyDto UsernameOnlyDto : result) {
+            System.out.println("UsernameOnlyDto = " + UsernameOnlyDto.getUsername());
+        }
     }
 }
